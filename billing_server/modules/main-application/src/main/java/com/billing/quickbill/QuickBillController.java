@@ -55,6 +55,20 @@ public class QuickBillController {
         return ok(quickBillService.report(from, to, userId, shopId));
     }
 
+    @GetMapping("/accounts/today")
+    public ResponseDO todayAccounts() {
+        return ok(quickBillService.todayAccounts(currentUser()));
+    }
+
+    @GetMapping("/accounts")
+    public ResponseDO accounts(
+            @RequestParam String from,
+            @RequestParam String to,
+            @RequestParam String shopId
+    ) {
+        return ok(quickBillService.accounts(from, to, shopId));
+    }
+
     @PostMapping("/{id}")
     public ResponseDO update(@PathVariable Long id, @RequestBody QuickBillSaveRequest request) {
         quickBillService.update(id, request, currentUser());

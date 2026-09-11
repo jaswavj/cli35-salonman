@@ -1,6 +1,11 @@
 package com.billing.quickbill;
 
 import com.billing.data.AppUser;
+import com.billing.incentive.IncentiveService;
+import com.billing.incentive.dto.IncentiveProgress;
+import com.billing.incentive.dto.IncentiveReportData;
+import com.billing.quickbill.dto.QuickBillAccountRow;
+import com.billing.quickbill.dto.QuickBillAccountsData;
 import com.billing.quickbill.dto.QuickBillCancelRequest;
 import com.billing.quickbill.dto.QuickBillDayRow;
 import com.billing.quickbill.dto.QuickBillLogRow;
@@ -36,6 +41,7 @@ public class QuickBillService {
     private static final Set<String> PAY_MODES = Set.of("cash", "gpay");
 
     private final JdbcTemplate jdbcTemplate;
+    private final IncentiveService incentiveService;
 
     @PostConstruct
     public void ensureTable() {
@@ -54,6 +60,8 @@ public class QuickBillService {
                         ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
         );
         addColumnIfMissing("quick_bills", "is_cancelled", "INT DEFAULT 0");
+        addColumnIfMissing("quick_bills", "tips_amount", "DECIMAL(12,2) DEFAULT 0");
+        addColumnIfMissing("quick_bills", "tips_pay_mode", "VARCHAR(20) DEFAULT NULL");
         jdbcTemplate.execute(
                 "CREATE TABLE IF NOT EXISTS quick_bill_logs (" +
                         "id INT UNSIGNED NOT NULL AUTO_INCREMENT," +
@@ -97,28 +105,36 @@ public class QuickBillService {
             throw new RuntimeException("Select Cash or GPay");
         }
         String notes = request.getNotes() == null ? "" : request.getNotes().trim();
+        double tipsAmount = normalizeTipsAmount(request.getTipsAmount());
+        String tipsPayMode = normalizeTipsPayMode(request.getTipsPayMode(), tipsAmount);
         String shopId = user == null ? "" : user.shopId();
         Long uid = user == null ? null : user.getId();
 
         KeyHolder keys = new GeneratedKeyHolder();
         jdbcTemplate.update(con -> {
             PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO quick_bills (amount, pay_mode, notes, shop_id, uid, bill_date, bill_time) " +
-                            "VALUES (?, ?, ?, ?, ?, CURDATE(), CURTIME())",
+                    "INSERT INTO quick_bills (amount, pay_mode, tips_amount, tips_pay_mode, notes, shop_id, uid, bill_date, bill_time) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE(), CURTIME())",
                     Statement.RETURN_GENERATED_KEYS
             );
             ps.setDouble(1, request.getAmount());
             ps.setString(2, payMode);
-            ps.setString(3, notes);
-            if (shopId == null || shopId.isBlank()) {
+            ps.setDouble(3, tipsAmount);
+            if (tipsPayMode.isEmpty()) {
                 ps.setNull(4, java.sql.Types.VARCHAR);
             } else {
-                ps.setString(4, shopId);
+                ps.setString(4, tipsPayMode);
+            }
+            ps.setString(5, notes);
+            if (shopId == null || shopId.isBlank()) {
+                ps.setNull(6, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(6, shopId);
             }
             if (uid == null) {
-                ps.setNull(5, java.sql.Types.INTEGER);
+                ps.setNull(7, java.sql.Types.INTEGER);
             } else {
-                ps.setLong(5, uid);
+                ps.setLong(7, uid);
             }
             return ps;
         }, keys);
@@ -134,12 +150,15 @@ public class QuickBillService {
         if (shopId == null || shopId.isBlank()) {
             throw new RuntimeException("Shop ID is missing from session");
         }
-        return query(
+        QuickBillReportData data = query(
                 " WHERE qb.uid = ? AND qb.shop_id = ? AND qb.bill_date = CURDATE()" +
                         " AND IFNULL(qb.is_cancelled,0) = 0 ORDER BY qb.bill_time DESC, qb.id DESC",
                 user.getId(),
                 shopId
         );
+        String today = LocalDate.now().toString();
+        data.setExpenseTotal(round2(sumExpenses(user.getId(), shopId, today, today)));
+        return data;
     }
 
     @Transactional
@@ -153,9 +172,11 @@ public class QuickBillService {
             throw new RuntimeException("Select Cash or GPay");
         }
         String notes = request.getNotes() == null ? "" : request.getNotes().trim();
+        double tipsAmount = normalizeTipsAmount(request.getTipsAmount());
+        String tipsPayMode = normalizeTipsPayMode(request.getTipsPayMode(), tipsAmount);
         jdbcTemplate.update(
-                "UPDATE quick_bills SET amount = ?, pay_mode = ?, notes = ? WHERE id = ?",
-                request.getAmount(), payMode, notes, id
+                "UPDATE quick_bills SET amount = ?, pay_mode = ?, tips_amount = ?, tips_pay_mode = ?, notes = ? WHERE id = ?",
+                request.getAmount(), payMode, tipsAmount, tipsPayMode.isEmpty() ? null : tipsPayMode, notes, id
         );
         insertLog(id, "edit", current, request.getAmount(), payMode, notes, "", user);
     }
@@ -289,9 +310,11 @@ public class QuickBillService {
 
         StringBuilder sql = new StringBuilder(
                 "SELECT qb.bill_date AS day, " +
-                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN qb.amount ELSE 0 END) AS gpay, " +
-                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN 0 ELSE qb.amount END) AS cash, " +
-                        "SUM(qb.amount) AS total, COUNT(*) AS billCount " +
+                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN qb.amount ELSE 0 END) " +
+                        "+ SUM(CASE WHEN qb.tips_pay_mode = 'gpay' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS gpay, " +
+                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN 0 ELSE qb.amount END) " +
+                        "+ SUM(CASE WHEN qb.tips_pay_mode = 'cash' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS cash, " +
+                        "SUM(qb.amount + IFNULL(qb.tips_amount,0)) AS total, COUNT(*) AS billCount " +
                         "FROM quick_bills qb " +
                         "WHERE qb.bill_date BETWEEN ? AND ? AND IFNULL(qb.is_cancelled,0) = 0"
         );
@@ -374,11 +397,178 @@ public class QuickBillService {
             args.add(shopId);
         }
         sql.append(" ORDER BY qb.bill_date, qb.bill_time, qb.id");
-        return query(sql.toString(), args.toArray());
+        QuickBillReportData data = query(sql.toString(), args.toArray());
+        data.setExpenseTotal(round2(sumExpenses(userId, shopId, from, to)));
+        return data;
+    }
+
+    public QuickBillAccountsData todayAccounts(AppUser user) {
+        if (user == null || user.getId() == null) {
+            throw new RuntimeException("Not signed in");
+        }
+        String shopId = user.shopId();
+        if (shopId == null || shopId.isBlank()) {
+            throw new RuntimeException("Shop ID is missing from session");
+        }
+        String today = LocalDate.now().toString();
+        return accounts(today, today, shopId);
+    }
+
+    public QuickBillAccountsData accounts(String from, String to, String shopId) {
+        if (from == null || from.isBlank() || to == null || to.isBlank()) {
+            throw new RuntimeException("From date and to date are required");
+        }
+        if (shopId == null || shopId.isBlank()) {
+            throw new RuntimeException("Shop is required");
+        }
+
+        List<QuickBillAccountRow> people = jdbcTemplate.query(
+                "SELECT u.id AS userId, IFNULL(NULLIF(u.fullName,''), u.user_name) AS userName, " +
+                        "u.shop_id AS shopId, IFNULL(o.shop_name, u.shop_id) AS shopName " +
+                        "FROM users u LEFT JOIN outlets o ON o.shop_id = u.shop_id " +
+                        "WHERE u.is_active = 1 AND u.shop_id = ? ORDER BY userName, u.user_name",
+                (rs, i) -> {
+                    QuickBillAccountRow row = new QuickBillAccountRow();
+                    row.setUserId(rs.getLong("userId"));
+                    row.setUserName(rs.getString("userName"));
+                    row.setShopId(rs.getString("shopId"));
+                    row.setShopName(rs.getString("shopName"));
+                    return row;
+                },
+                shopId
+        );
+
+        Map<Long, double[]> collected = new HashMap<>();
+        jdbcTemplate.query(
+                "SELECT qb.uid AS userId, " +
+                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN qb.amount ELSE 0 END) " +
+                        "+ SUM(CASE WHEN qb.tips_pay_mode = 'gpay' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS bank, " +
+                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN 0 ELSE qb.amount END) " +
+                        "+ SUM(CASE WHEN qb.tips_pay_mode = 'cash' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS cash, " +
+                        "SUM(IFNULL(qb.tips_amount,0)) AS tips, " +
+                        "SUM(CASE WHEN qb.tips_pay_mode = 'cash' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS tipsCash, " +
+                        "SUM(CASE WHEN qb.tips_pay_mode = 'gpay' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS tipsBank " +
+                        "FROM quick_bills qb " +
+                        "WHERE qb.shop_id = ? AND qb.bill_date BETWEEN ? AND ? AND IFNULL(qb.is_cancelled,0) = 0 " +
+                        "GROUP BY qb.uid",
+                rs -> {
+                    collected.put(rs.getLong("userId"), new double[]{
+                            rs.getDouble("cash"),
+                            rs.getDouble("bank"),
+                            rs.getDouble("tips"),
+                            rs.getDouble("tipsCash"),
+                            rs.getDouble("tipsBank")
+                    });
+                },
+                shopId,
+                from,
+                to
+        );
+
+        Map<Long, Double> incentiveByUser = new HashMap<>();
+        IncentiveReportData incentives = incentiveService.report(from, to, shopId, null);
+        for (IncentiveProgress person : incentives.getRows()) {
+            if (person.getUserId() != null) {
+                incentiveByUser.put(person.getUserId(), nz(person.getIncentiveEarn()));
+            }
+        }
+
+        Map<Long, Double> expenseByUser = new HashMap<>();
+        jdbcTemplate.query(
+                "SELECT uid AS userId, IFNULL(SUM(amount),0) AS expense " +
+                        "FROM salon_expenses WHERE shop_id = ? AND exp_date BETWEEN ? AND ? GROUP BY uid",
+                rs -> {
+                    expenseByUser.put(rs.getLong("userId"), rs.getDouble("expense"));
+                },
+                shopId,
+                from,
+                to
+        );
+
+        QuickBillAccountsData data = new QuickBillAccountsData();
+        data.setShopId(shopId);
+        if (!people.isEmpty()) {
+            data.setShopName(people.get(0).getShopName());
+        }
+        double cashTotal = 0;
+        double bankTotal = 0;
+        double tipsTotal = 0;
+        double incentiveTotal = 0;
+        double expenseTotal = 0;
+        double finalCashTotal = 0;
+        double finalBankTotal = 0;
+        for (QuickBillAccountRow row : people) {
+            double[] vals = collected.getOrDefault(row.getUserId(), new double[]{0, 0, 0, 0, 0});
+            double cash = vals[0];
+            double bank = vals[1];
+            double tips = vals[2];
+            double tipsCash = vals[3];
+            double tipsBank = vals[4];
+            double incentive = incentiveByUser.getOrDefault(row.getUserId(), 0.0);
+            double expense = expenseByUser.getOrDefault(row.getUserId(), 0.0);
+            double finalCash = cash - tipsCash - tipsBank - incentive - expense;
+            row.setCashTotal(round2(cash));
+            row.setBankTotal(round2(bank));
+            row.setTotal(round2(cash + bank));
+            row.setTipsTotal(round2(tips));
+            row.setTipsCash(round2(tipsCash));
+            row.setTipsBank(round2(tipsBank));
+            row.setIncentiveEarn(round2(incentive));
+            row.setExpenseTotal(round2(expense));
+            row.setFinalCash(round2(finalCash));
+            row.setFinalBank(round2(bank));
+            cashTotal += cash;
+            bankTotal += bank;
+            tipsTotal += tips;
+            incentiveTotal += incentive;
+            expenseTotal += expense;
+            finalCashTotal += finalCash;
+            finalBankTotal += bank;
+        }
+        data.setRows(people);
+        data.setCount(people.size());
+        data.setCashTotal(round2(cashTotal));
+        data.setBankTotal(round2(bankTotal));
+        data.setGrandTotal(round2(cashTotal + bankTotal));
+        data.setTipsTotal(round2(tipsTotal));
+        data.setIncentiveTotal(round2(incentiveTotal));
+        data.setExpenseTotal(round2(expenseTotal));
+        data.setFinalCashTotal(round2(finalCashTotal));
+        data.setFinalBankTotal(round2(finalBankTotal));
+        return data;
+    }
+
+    private double sumExpenses(Long userId, String shopId, String from, String to) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT IFNULL(SUM(amount),0) FROM salon_expenses WHERE exp_date BETWEEN ? AND ?"
+        );
+        List<Object> args = new ArrayList<>();
+        args.add(from);
+        args.add(to);
+        if (userId != null && userId > 0) {
+            sql.append(" AND uid = ?");
+            args.add(userId);
+        }
+        if (shopId != null && !shopId.isBlank()) {
+            sql.append(" AND shop_id = ?");
+            args.add(shopId);
+        }
+        Double total = jdbcTemplate.queryForObject(sql.toString(), Double.class, args.toArray());
+        return total == null ? 0 : total;
+    }
+
+    private static double nz(Double value) {
+        return value == null ? 0 : value;
+    }
+
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private static final String SELECT_ROWS =
-            "SELECT qb.id, qb.amount, qb.pay_mode AS payMode, IFNULL(qb.notes,'') AS notes, " +
+            "SELECT qb.id, qb.amount, qb.pay_mode AS payMode, " +
+                    "IFNULL(qb.tips_amount,0) AS tipsAmount, IFNULL(qb.tips_pay_mode,'') AS tipsPayMode, " +
+                    "IFNULL(qb.notes,'') AS notes, " +
                     "qb.shop_id AS shopId, IFNULL(o.shop_name, qb.shop_id) AS shopName, " +
                     "qb.uid AS userId, IFNULL(NULLIF(u.fullName,''), u.user_name) AS userName, " +
                     "DATE_FORMAT(qb.bill_date, '%d-%m-%Y') AS billDate, " +
@@ -394,6 +584,7 @@ public class QuickBillService {
         data.setRows(rows);
         double cash = 0;
         double gpay = 0;
+        double tips = 0;
         double total = 0;
         int active = 0;
         for (QuickBillRow row : rows) {
@@ -402,16 +593,26 @@ public class QuickBillService {
             }
             active++;
             double amt = row.getAmount() == null ? 0 : row.getAmount();
-            total += amt;
+            double tip = row.getTipsAmount() == null ? 0 : row.getTipsAmount();
+            tips += tip;
+            total += amt + tip;
             if ("gpay".equalsIgnoreCase(row.getPayMode())) {
                 gpay += amt;
             } else {
                 cash += amt;
             }
+            if (tip > 0) {
+                if ("gpay".equalsIgnoreCase(row.getTipsPayMode())) {
+                    gpay += tip;
+                } else {
+                    cash += tip;
+                }
+            }
         }
         data.setCount(active);
         data.setCashTotal(cash);
         data.setGpayTotal(gpay);
+        data.setTipsTotal(tips);
         data.setGrandTotal(total);
         return data;
     }
@@ -421,6 +622,8 @@ public class QuickBillService {
         row.setId(rs.getLong("id"));
         row.setAmount(rs.getDouble("amount"));
         row.setPayMode(rs.getString("payMode"));
+        row.setTipsAmount(rs.getDouble("tipsAmount"));
+        row.setTipsPayMode(rs.getString("tipsPayMode"));
         row.setNotes(rs.getString("notes"));
         row.setShopId(rs.getString("shopId"));
         row.setShopName(rs.getString("shopName"));
@@ -431,5 +634,26 @@ public class QuickBillService {
         row.setBillTime(rs.getString("billTime"));
         row.setIsCancelled(rs.getInt("isCancelled"));
         return row;
+    }
+
+    private double normalizeTipsAmount(Double tips) {
+        if (tips == null) {
+            return 0;
+        }
+        if (tips < 0) {
+            throw new RuntimeException("Enter a valid tips amount");
+        }
+        return tips;
+    }
+
+    private String normalizeTipsPayMode(String payMode, double tipsAmount) {
+        String mode = payMode == null ? "" : payMode.trim().toLowerCase();
+        if (tipsAmount <= 0) {
+            return "";
+        }
+        if (!PAY_MODES.contains(mode)) {
+            throw new RuntimeException("Select Cash or GPay for tips");
+        }
+        return mode;
     }
 }

@@ -163,8 +163,10 @@
 .usr-save-row {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   margin-top: 12px;
+  flex-wrap: wrap;
 }
 
 .usr-modal {

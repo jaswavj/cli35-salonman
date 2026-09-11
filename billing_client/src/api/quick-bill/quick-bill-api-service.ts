@@ -4,6 +4,8 @@ export type QuickBillRow = {
   id: number;
   amount: number;
   payMode: string;
+  tipsAmount?: number;
+  tipsPayMode?: string;
   notes: string;
   shopId: string;
   shopName: string;
@@ -18,6 +20,8 @@ export type QuickBillReport = {
   rows: QuickBillRow[];
   cashTotal: number;
   gpayTotal: number;
+  tipsTotal?: number;
+  expenseTotal?: number;
   grandTotal: number;
   count: number;
 };
@@ -41,6 +45,38 @@ export type QuickBillTrend = {
   count: number;
 };
 
+export type QuickBillAccountRow = {
+  userId: number;
+  userName: string;
+  shopId: string;
+  shopName: string;
+  cashTotal: number;
+  bankTotal: number;
+  total: number;
+  tipsTotal: number;
+  tipsCash?: number;
+  tipsBank?: number;
+  incentiveEarn: number;
+  expenseTotal?: number;
+  finalCash: number;
+  finalBank: number;
+};
+
+export type QuickBillAccounts = {
+  rows: QuickBillAccountRow[];
+  shopId?: string;
+  shopName?: string;
+  cashTotal: number;
+  bankTotal: number;
+  grandTotal: number;
+  tipsTotal: number;
+  incentiveTotal: number;
+  expenseTotal?: number;
+  finalCashTotal: number;
+  finalBankTotal: number;
+  count: number;
+};
+
 export type QuickBillLog = {
   id: number;
   billId: number;
@@ -61,8 +97,13 @@ export type QuickBillLog = {
 export class QuickBillApiService {
   private http = new HttpClientWrapper();
 
-  save = (payload: { amount: number; payMode: 'cash' | 'gpay'; notes: string }) =>
-    this.http.post('/v1/quick-bills', payload);
+  save = (payload: {
+    amount: number;
+    payMode: 'cash' | 'gpay';
+    tipsAmount?: number;
+    tipsPayMode?: string;
+    notes: string;
+  }) => this.http.post('/v1/quick-bills', payload);
 
   today = () => this.http.get('/v1/quick-bills/today');
 
@@ -82,8 +123,20 @@ export class QuickBillApiService {
     return this.http.get(`/v1/quick-bills/report?${params}`);
   };
 
-  update = (id: number, payload: { amount: number; payMode: 'cash' | 'gpay'; notes: string }) =>
-    this.http.post(`/v1/quick-bills/${id}`, payload);
+  todayAccounts = () => this.http.get('/v1/quick-bills/accounts/today');
+
+  accounts = (from: string, to: string, shopId: string) => {
+    const params = new URLSearchParams({ from, to, shopId });
+    return this.http.get(`/v1/quick-bills/accounts?${params}`);
+  };
+
+  update = (id: number, payload: {
+    amount: number;
+    payMode: 'cash' | 'gpay';
+    tipsAmount?: number;
+    tipsPayMode?: string;
+    notes: string;
+  }) => this.http.post(`/v1/quick-bills/${id}`, payload);
 
   cancel = (id: number, reason: string) =>
     this.http.post(`/v1/quick-bills/${id}/cancel`, { reason });

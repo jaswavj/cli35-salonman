@@ -83,7 +83,8 @@ export const routerPathNames = {
     paymentTypeChangeReport: '/app/admin/payment-type-change-report',
     exchangeReport: '/app/admin/exchange-report',
   },
-  expense: {
+  expense: '/app/expense',
+  expensePages: {
     type: '/app/expense/type',
     entry: '/app/expense/entry',
     report: '/app/expense/report',

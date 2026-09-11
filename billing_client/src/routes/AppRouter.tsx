@@ -25,6 +25,7 @@ const ModulePermissionPage = lazy(() => import('../billing/pages/users/Permissio
 const ChangePasswordPage = lazy(() => import('../billing/pages/users/ChangePasswordPage'));
 const CompanyDetailsPage = lazy(() => import('../billing/pages/admin/CompanyDetailsPage'));
 const EditLogPage = lazy(() => import('../billing/pages/admin/EditLogPage'));
+const SalonExpensePage = lazy(() => import('../billing/pages/expense/SalonExpensePage'));
 
 const guard = (element: ReactElement) => <AuthGuard component={element} />;
 
@@ -52,6 +53,7 @@ const AppRouter = () => {
                 <Route path="attendance/report" element={<AttendanceReportPage />} />
                 <Route path="incentive" element={<IncentiveEntryPage />} />
                 <Route path="incentive/report" element={<IncentiveReportPage />} />
+                <Route path="expense" element={<SalonExpensePage />} />
                 <Route path="users/create" element={<CreateUserPage />} />
                 <Route path="users/permission" element={<ModulePermissionPage />} />
                 <Route path="admin/company-details" element={<CompanyDetailsPage />} />

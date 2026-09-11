@@ -19,6 +19,7 @@ export const MENU_MODULE = {
   admin: 6,
   incentive: 7,
   incentiveReport: 8,
+  expense: 9,
 } as const;
 
 export const filterMenuByModules = (items: MenuItemConfig[], moduleIds: number[]): MenuItemConfig[] => {
@@ -80,6 +81,13 @@ export const billingMenuConfig: MenuItemConfig[] = [
     moduleId: MENU_MODULE.incentiveReport,
   },
   {
+    id: 'expense',
+    name: 'Expense',
+    icon: 'fas fa-money-bill-wave',
+    url: routerPathNames.expense,
+    moduleId: MENU_MODULE.expense,
+  },
+  {
     id: 'admin',
     name: 'Admin',
     icon: 'fas fa-chart-pie',
@@ -87,7 +95,7 @@ export const billingMenuConfig: MenuItemConfig[] = [
     submenus: [
       { id: 'company-details', name: 'Company Details', url: routerPathNames.admin.companyDetails, icon: 'fas fa-building' },
       { id: 'create-user', name: 'Create User', url: routerPathNames.users.create, icon: 'fas fa-user-plus' },
-      { id: 'permission', name: 'Module Permission', url: routerPathNames.users.permission, icon: 'fas fa-key' },
+      { id: 'permission', name: 'Edit User / Permission', url: routerPathNames.users.permission, icon: 'fas fa-user-edit' },
       { id: 'edit-log', name: 'Edit Log', url: routerPathNames.admin.editLog, icon: 'fas fa-history' },
     ],
   },
@@ -116,6 +124,7 @@ export const moduleIdForPath = (pathname: string): number | null => {
   if (pathname.includes('/app/attendance')) return MENU_MODULE.attendanceEntry;
   if (pathname.includes('/app/incentive/report')) return MENU_MODULE.incentiveReport;
   if (pathname.includes('/app/incentive')) return MENU_MODULE.incentive;
+  if (pathname.includes('/app/expense')) return MENU_MODULE.expense;
   if (pathname.includes('/app/users')) return MENU_MODULE.admin;
   if (pathname.includes('/app/admin')) return MENU_MODULE.admin;
   return null;

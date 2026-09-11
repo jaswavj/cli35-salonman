@@ -7,6 +7,8 @@ public class QuickBillRow {
     private Long id;
     private Double amount;
     private String payMode;
+    private Double tipsAmount;
+    private String tipsPayMode;
     private String notes;
     private String shopId;
     private String shopName;

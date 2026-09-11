@@ -59,19 +59,42 @@ public class UserAdminService {
     }
 
     public List<UserOptionData> users(String shopId) {
-        if (shopId == null || shopId.isBlank()) {
-            return jdbcTemplate.query(
-                    "SELECT id, user_name, IFNULL(fullName,'') AS fullName " +
-                            "FROM users WHERE is_active = 1 ORDER BY fullName, user_name",
-                    (rs, i) -> mapUserOption(rs.getLong("id"), rs.getString("user_name"), rs.getString("fullName"))
-            );
-        }
-        return jdbcTemplate.query(
-                "SELECT id, user_name, IFNULL(fullName,'') AS fullName " +
-                        "FROM users WHERE is_active = 1 AND shop_id = ? ORDER BY fullName, user_name",
-                (rs, i) -> mapUserOption(rs.getLong("id"), rs.getString("user_name"), rs.getString("fullName")),
-                shopId
+        return users(shopId, false);
+    }
+
+    public List<UserOptionData> users(String shopId, boolean blocked) {
+        int active = blocked ? 0 : 1;
+        StringBuilder sql = new StringBuilder(
+                "SELECT u.id, u.user_name, IFNULL(u.fullName,'') AS fullName, u.shop_id AS shopId, " +
+                        "IFNULL(o.shop_name, u.shop_id) AS shopName " +
+                        "FROM users u LEFT JOIN outlets o ON o.shop_id = u.shop_id " +
+                        "WHERE IFNULL(u.is_active,0) = ?"
         );
+        List<Object> args = new java.util.ArrayList<>();
+        args.add(active);
+        if (shopId != null && !shopId.isBlank()) {
+            sql.append(" AND u.shop_id = ?");
+            args.add(shopId);
+        }
+        sql.append(" ORDER BY fullName, u.user_name");
+        return jdbcTemplate.query(sql.toString(), (rs, i) -> {
+            UserOptionData row = mapUserOption(rs.getLong("id"), rs.getString("user_name"), rs.getString("fullName"));
+            row.setShopId(rs.getString("shopId"));
+            row.setShopName(rs.getString("shopName"));
+            return row;
+        }, args.toArray());
+    }
+
+    @Transactional
+    public void setUserActive(Long userId, boolean active, Long actorId) {
+        requireUser(userId);
+        if (!active && actorId != null && actorId.equals(userId)) {
+            throw new RuntimeException("You cannot block your own login");
+        }
+        int updated = jdbcTemplate.update("UPDATE users SET is_active = ? WHERE id = ?", active ? 1 : 0, userId);
+        if (updated == 0) {
+            throw new RuntimeException("User not found");
+        }
     }
 
     @Transactional

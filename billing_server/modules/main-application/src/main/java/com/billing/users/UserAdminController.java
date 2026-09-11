@@ -30,8 +30,11 @@ public class UserAdminController {
     }
 
     @GetMapping("/list")
-    public ResponseDO users(@RequestParam(required = false) String shopId) {
-        return ok(userAdminService.users(shopId));
+    public ResponseDO users(
+            @RequestParam(required = false) String shopId,
+            @RequestParam(required = false) Boolean blocked
+    ) {
+        return ok(userAdminService.users(shopId, Boolean.TRUE.equals(blocked)));
     }
 
     @GetMapping("/outlets")
@@ -53,6 +56,18 @@ public class UserAdminController {
     @PostMapping("/{id}/permissions")
     public ResponseDO updateModulePermissions(@PathVariable Long id, @RequestBody PermissionUpdateRequest request) {
         userAdminService.updateModulePermissions(id, request);
+        return ok(true);
+    }
+
+    @PostMapping("/{id}/block")
+    public ResponseDO blockUser(@PathVariable Long id) {
+        userAdminService.setUserActive(id, false, currentUserId());
+        return ok(true);
+    }
+
+    @PostMapping("/{id}/unblock")
+    public ResponseDO unblockUser(@PathVariable Long id) {
+        userAdminService.setUserActive(id, true, currentUserId());
         return ok(true);
     }
 

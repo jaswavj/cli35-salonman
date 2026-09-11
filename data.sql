@@ -140,9 +140,12 @@ CREATE TABLE `incentives` (
   `incentive_mode` varchar(20) NOT NULL,
   `incentive_value` decimal(12,2) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 /*Data for the table `incentives` */
+
+insert  into `incentives`(`id`,`shop_id`,`uid`,`target_amount`,`compare_type`,`incentive_mode`,`incentive_value`) values 
+(1,'S01',1,100.00,'gt','percent',10.00);
 
 /*Table structure for table `outlets` */
 
@@ -201,10 +204,39 @@ CREATE TABLE `quick_bills` (
   `bill_date` date DEFAULT NULL,
   `bill_time` time DEFAULT NULL,
   `is_cancelled` int DEFAULT '0',
+  `tips_amount` decimal(12,2) DEFAULT '0.00',
+  `tips_pay_mode` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 /*Data for the table `quick_bills` */
+
+insert  into `quick_bills`(`id`,`amount`,`pay_mode`,`notes`,`shop_id`,`uid`,`bill_date`,`bill_time`,`is_cancelled`,`tips_amount`,`tips_pay_mode`) values 
+(1,200.00,'cash','','S01',1,'2026-09-11','21:31:57',0,10.00,'cash'),
+(2,200.00,'gpay','','S01',1,'2026-09-11','21:32:05',0,20.00,'gpay'),
+(3,100.00,'cash','','S01',28,'2026-09-11','21:48:29',0,10.00,'cash'),
+(4,200.00,'gpay','','S01',28,'2026-09-11','21:48:38',0,20.00,'cash');
+
+/*Table structure for table `salon_expenses` */
+
+DROP TABLE IF EXISTS `salon_expenses`;
+
+CREATE TABLE `salon_expenses` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `amount` decimal(12,2) NOT NULL,
+  `expense_for` varchar(255) NOT NULL,
+  `shop_id` varchar(255) DEFAULT NULL,
+  `uid` int DEFAULT NULL,
+  `exp_date` date DEFAULT NULL,
+  `exp_time` time DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `salon_expenses` */
+
+insert  into `salon_expenses`(`id`,`amount`,`expense_for`,`shop_id`,`uid`,`exp_date`,`exp_time`) values 
+(1,10.00,'Tea','S01',1,'2026-09-11','22:07:06'),
+(2,20.00,'rent','S01',28,'2026-09-11','22:11:17');
 
 /*Table structure for table `special_permission` */
 
@@ -309,7 +341,7 @@ CREATE TABLE `user_modules` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `module_name` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=latin1;
 
 /*Data for the table `user_modules` */
 
@@ -321,7 +353,8 @@ insert  into `user_modules`(`id`,`module_name`) values
 (5,'Attendance Report'),
 (6,'Admin'),
 (7,'Incentive Entry'),
-(8,'Incentive report');
+(8,'Incentive report'),
+(9,'Expense');
 
 /*Table structure for table `user_permission` */
 
@@ -336,19 +369,37 @@ CREATE TABLE `user_permission` (
   PRIMARY KEY (`id`),
   KEY `mod` (`module_id`),
   KEY `uid` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=155 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=189 DEFAULT CHARSET=latin1;
 
 /*Data for the table `user_permission` */
 
 insert  into `user_permission`(`id`,`module_id`,`uid`,`date`,`time`) values 
-(141,1,1,'2026-09-10','16:24:52'),
-(142,2,1,'2026-09-10','16:24:52'),
-(143,3,1,'2026-09-10','16:24:52'),
-(144,4,1,'2026-09-10','16:24:52'),
-(145,5,1,'2026-09-10','16:24:52'),
-(146,6,1,'2026-09-10','16:24:52'),
-(147,7,1,'2026-09-10','16:24:52'),
-(148,8,1,'2026-09-10','16:24:52');
+(163,1,29,'2026-09-11','21:48:02'),
+(164,2,29,'2026-09-11','21:48:02'),
+(165,3,29,'2026-09-11','21:48:02'),
+(166,4,29,'2026-09-11','21:48:02'),
+(167,5,29,'2026-09-11','21:48:02'),
+(168,6,29,'2026-09-11','21:48:02'),
+(169,7,29,'2026-09-11','21:48:02'),
+(170,8,29,'2026-09-11','21:48:02'),
+(171,1,1,'2026-09-11','22:05:49'),
+(172,2,1,'2026-09-11','22:05:49'),
+(173,3,1,'2026-09-11','22:05:49'),
+(174,4,1,'2026-09-11','22:05:49'),
+(175,5,1,'2026-09-11','22:05:49'),
+(176,6,1,'2026-09-11','22:05:49'),
+(177,7,1,'2026-09-11','22:05:49'),
+(178,8,1,'2026-09-11','22:05:49'),
+(179,9,1,'2026-09-11','22:05:49'),
+(180,1,28,'2026-09-11','22:10:57'),
+(181,2,28,'2026-09-11','22:10:57'),
+(182,3,28,'2026-09-11','22:10:57'),
+(183,4,28,'2026-09-11','22:10:57'),
+(184,5,28,'2026-09-11','22:10:57'),
+(185,6,28,'2026-09-11','22:10:57'),
+(186,8,28,'2026-09-11','22:10:57'),
+(187,7,28,'2026-09-11','22:10:57'),
+(188,9,28,'2026-09-11','22:10:57');
 
 /*Table structure for table `user_special_permission` */
 
@@ -380,12 +431,14 @@ CREATE TABLE `users` (
   `shop_id` varchar(255) DEFAULT NULL,
   `is_admin` int DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=latin1;
 
 /*Data for the table `users` */
 
 insert  into `users`(`id`,`user_name`,`password`,`is_active`,`fullName`,`disc_per`,`shop_id`,`is_admin`) values 
-(1,'jasxbill','aecbf9a63cec1e93327dfc212f31acdb31c4f5d10bedccf8fbb8b042a6f0f39155797bdd04517905ae5d98b69fdc452cdb61b018e10939740ec96f36e133d639',1,'admin',50,'S01',1);
+(1,'admin','aecbf9a63cec1e93327dfc212f31acdb31c4f5d10bedccf8fbb8b042a6f0f39155797bdd04517905ae5d98b69fdc452cdb61b018e10939740ec96f36e133d639',1,'admin',50,'S01',1),
+(28,'admin1','aecbf9a63cec1e93327dfc212f31acdb31c4f5d10bedccf8fbb8b042a6f0f39155797bdd04517905ae5d98b69fdc452cdb61b018e10939740ec96f36e133d639',1,'admin1',100,'S01',0),
+(29,'admin2','aecbf9a63cec1e93327dfc212f31acdb31c4f5d10bedccf8fbb8b042a6f0f39155797bdd04517905ae5d98b69fdc452cdb61b018e10939740ec96f36e133d639',1,'admin2',100,'S02',0);
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
