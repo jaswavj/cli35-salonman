@@ -1,0 +1,150 @@
+.att-card {
+  width: min(480px, 100%);
+}
+
+.att-clock {
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.att-last {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 650;
+  text-align: center;
+}
+
+.att-last.in {
+  background: color-mix(in srgb, #16a34a 14%, transparent);
+  color: #15803d;
+}
+
+.att-last.out {
+  background: color-mix(in srgb, #dc2626 12%, transparent);
+  color: #b91c1c;
+}
+
+.att-pay .qb-pay-btn {
+  min-height: 88px;
+  font-size: 1.2rem;
+}
+
+.att-pay .qb-pay-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.att-in {
+  color: #15803d;
+}
+
+.att-in i,
+.att-in.on {
+  color: #15803d;
+}
+
+.att-in.on,
+.qb-pay-btn.att-in.on {
+  border-color: #16a34a;
+  background: color-mix(in srgb, #16a34a 12%, var(--color-bg-surface));
+}
+
+.att-out {
+  color: #b91c1c;
+}
+
+.att-out i,
+.att-out.on {
+  color: #b91c1c;
+}
+
+.att-out.on,
+.qb-pay-btn.att-out.on {
+  border-color: #dc2626;
+  background: color-mix(in srgb, #dc2626 10%, var(--color-bg-surface));
+}
+
+.att-today {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.att-today-h {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 750;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.att-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.att-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.att-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--color-bg-page);
+}
+
+.att-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.att-tag.in {
+  background: color-mix(in srgb, #16a34a 16%, transparent);
+  color: #15803d;
+}
+
+.att-tag.out {
+  background: color-mix(in srgb, #dc2626 14%, transparent);
+  color: #b91c1c;
+}
+
+.att-time {
+  font-weight: 750;
+}
+
+.att-note {
+  width: 100%;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 640px) {
+  .att-clock {
+    font-size: 1.55rem;
+  }
+}
