@@ -1,7 +1,8 @@
 import React from 'react';
 import type { QuickBillAccounts } from '../../../api/quick-bill/quick-bill-api-service';
 
-const n = (v?: number) => Number(v || 0).toFixed(2);
+const n = (v?: number) =>
+  Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 type Props = {
   data: QuickBillAccounts;
