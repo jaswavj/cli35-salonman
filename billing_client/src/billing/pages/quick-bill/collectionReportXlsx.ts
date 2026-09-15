@@ -37,7 +37,7 @@ export const downloadCollectionXlsx = (data: QuickBillReport, incentiveEarn: num
   }, 0);
   const incentive = n(incentiveEarn);
   const expense = n(data.expenseTotal);
-  const finalCash = n(data.cashTotal) - tipsCash - tipsGpay - incentive - expense;
+  const finalCash = n(data.cashTotal) - tipsGpay - incentive;
   const finalBank = n(data.gpayTotal);
 
   writeBook(
@@ -52,8 +52,8 @@ export const downloadCollectionXlsx = (data: QuickBillReport, incentiveEarn: num
           ['User', meta.userName || 'All Users'],
           [],
           ['Bills', data.count || 0],
-          ['Cash (including tips)', money(data.cashTotal)],
-          ['GPay (including tips)', money(data.gpayTotal)],
+          ['Cash', money(data.cashTotal)],
+          ['GPay', money(data.gpayTotal)],
           ['Total', money(data.grandTotal)],
           ['Tips', money(data.tipsTotal)],
           ['Tips Cash', money(tipsCash)],
@@ -102,7 +102,7 @@ export const downloadAccountsXlsx = (data: QuickBillAccounts, meta: FilterMeta) 
           ['Cash', money(data.cashTotal)],
           ['Bank', money(data.bankTotal)],
           ['Total', money(data.grandTotal)],
-          ['Tips', money(data.tipsTotal)],
+          ['GPay Tips', money(data.tipsTotal)],
           ['Incentive', money(data.incentiveTotal)],
           ['Expense', money(data.expenseTotal)],
           ['Final Cash', money(data.finalCashTotal)],
@@ -112,13 +112,13 @@ export const downloadAccountsXlsx = (data: QuickBillAccounts, meta: FilterMeta) 
       {
         name: 'Accounts',
         rows: [
-          ['User', 'Cash', 'Bank', 'Total', 'Tips', 'Incentive', 'Expense', 'Final Cash', 'Final Bank'],
+          ['User', 'Cash', 'Bank', 'Total', 'GPay Tips', 'Incentive', 'Expense', 'Final Cash', 'Final Bank'],
           ...rows.map((row) => [
             row.userName || '',
             money(row.cashTotal),
             money(row.bankTotal),
             money(row.total),
-            money(row.tipsTotal),
+            money(row.tipsBank ?? row.tipsTotal),
             money(row.incentiveEarn),
             money(row.expenseTotal),
             money(row.finalCash),

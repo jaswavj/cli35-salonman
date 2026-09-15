@@ -3,6 +3,7 @@ import type { QuickBillAccounts } from '../../../api/quick-bill/quick-bill-api-s
 
 const n = (v?: number) =>
   Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const amt = (v?: number) => (Number(v || 0) === 0 ? '' : n(v));
 
 type Props = {
   data: QuickBillAccounts;
@@ -10,7 +11,9 @@ type Props = {
 };
 
 const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
-  const rows = data.rows || [];
+  const rows = (data.rows || []).filter(
+    (row) => Number(row.cashTotal || 0) !== 0 || Number(row.bankTotal || 0) !== 0
+  );
   return (
     <>
       <div className="qb-kpis qb-account-kpis">
@@ -31,7 +34,7 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
         <div className="qb-kpi tips">
           <span className="qb-kpi-ico"><i className="fas fa-hand-holding-usd" /></span>
           <div>
-            <div className="qb-kpi-l">Tips</div>
+            <div className="qb-kpi-l">GPay Tips</div>
             <div className="qb-kpi-v">{n(data.tipsTotal)}</div>
           </div>
         </div>
@@ -64,7 +67,7 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
       <div className="mst-card">
         <div className="mst-card-h">
           <span>User accounts{data.shopName ? ` · ${data.shopName}` : ''}</span>
-          <span className="qb-bills-total">{data.count || 0} users</span>
+          <span className="qb-bills-total">{rows.length} users</span>
         </div>
         {rows.length === 0 ? (
           <div className="mst-empty">{emptyText}</div>
@@ -77,7 +80,7 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
                   <th className="num">Cash</th>
                   <th className="num">Bank</th>
                   <th className="num">Total</th>
-                  <th className="num">Tips</th>
+                  <th className="num">GPay Tips</th>
                   <th className="num">Incentive</th>
                   <th className="num">Expense</th>
                   <th className="num">Final Cash</th>
@@ -88,10 +91,10 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
                 {rows.map((row) => (
                   <tr key={row.userId}>
                     <td>{row.userName || '—'}</td>
-                    <td className="num">{n(row.cashTotal)}</td>
-                    <td className="num">{n(row.bankTotal)}</td>
+                    <td className="num">{amt(row.cashTotal)}</td>
+                    <td className="num">{amt(row.bankTotal)}</td>
                     <td className="num">{n(row.total)}</td>
-                    <td className="num">{n(row.tipsTotal)}</td>
+                    <td className="num">{n(row.tipsBank ?? row.tipsTotal)}</td>
                     <td className="num">{n(row.incentiveEarn)}</td>
                     <td className="num">{n(row.expenseTotal)}</td>
                     <td className="num">{n(row.finalCash)}</td>

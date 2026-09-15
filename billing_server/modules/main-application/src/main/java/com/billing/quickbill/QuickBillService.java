@@ -310,11 +310,9 @@ public class QuickBillService {
 
         StringBuilder sql = new StringBuilder(
                 "SELECT qb.bill_date AS day, " +
-                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN qb.amount ELSE 0 END) " +
-                        "+ SUM(CASE WHEN qb.tips_pay_mode = 'gpay' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS gpay, " +
-                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN 0 ELSE qb.amount END) " +
-                        "+ SUM(CASE WHEN qb.tips_pay_mode = 'cash' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS cash, " +
-                        "SUM(qb.amount + IFNULL(qb.tips_amount,0)) AS total, COUNT(*) AS billCount " +
+                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN qb.amount ELSE 0 END) AS gpay, " +
+                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN 0 ELSE qb.amount END) AS cash, " +
+                        "SUM(qb.amount) AS total, COUNT(*) AS billCount " +
                         "FROM quick_bills qb " +
                         "WHERE qb.bill_date BETWEEN ? AND ? AND IFNULL(qb.is_cancelled,0) = 0"
         );
@@ -441,10 +439,8 @@ public class QuickBillService {
         Map<Long, double[]> collected = new HashMap<>();
         jdbcTemplate.query(
                 "SELECT qb.uid AS userId, " +
-                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN qb.amount ELSE 0 END) " +
-                        "+ SUM(CASE WHEN qb.tips_pay_mode = 'gpay' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS bank, " +
-                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN 0 ELSE qb.amount END) " +
-                        "+ SUM(CASE WHEN qb.tips_pay_mode = 'cash' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS cash, " +
+                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN qb.amount ELSE 0 END) AS bank, " +
+                        "SUM(CASE WHEN qb.pay_mode = 'gpay' THEN 0 ELSE qb.amount END) AS cash, " +
                         "SUM(IFNULL(qb.tips_amount,0)) AS tips, " +
                         "SUM(CASE WHEN qb.tips_pay_mode = 'cash' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS tipsCash, " +
                         "SUM(CASE WHEN qb.tips_pay_mode = 'gpay' THEN IFNULL(qb.tips_amount,0) ELSE 0 END) AS tipsBank " +
@@ -506,11 +502,11 @@ public class QuickBillService {
             double tipsBank = vals[4];
             double incentive = incentiveByUser.getOrDefault(row.getUserId(), 0.0);
             double expense = expenseByUser.getOrDefault(row.getUserId(), 0.0);
-            double finalCash = cash - tipsCash - tipsBank - incentive - expense;
+            double finalCash = cash - tipsBank - incentive;
             row.setCashTotal(round2(cash));
             row.setBankTotal(round2(bank));
             row.setTotal(round2(cash + bank));
-            row.setTipsTotal(round2(tips));
+            row.setTipsTotal(round2(tipsBank));
             row.setTipsCash(round2(tipsCash));
             row.setTipsBank(round2(tipsBank));
             row.setIncentiveEarn(round2(incentive));
@@ -519,7 +515,7 @@ public class QuickBillService {
             row.setFinalBank(round2(bank));
             cashTotal += cash;
             bankTotal += bank;
-            tipsTotal += tips;
+            tipsTotal += tipsBank;
             incentiveTotal += incentive;
             expenseTotal += expense;
             finalCashTotal += finalCash;
@@ -595,18 +591,11 @@ public class QuickBillService {
             double amt = row.getAmount() == null ? 0 : row.getAmount();
             double tip = row.getTipsAmount() == null ? 0 : row.getTipsAmount();
             tips += tip;
-            total += amt + tip;
+            total += amt;
             if ("gpay".equalsIgnoreCase(row.getPayMode())) {
                 gpay += amt;
             } else {
                 cash += amt;
-            }
-            if (tip > 0) {
-                if ("gpay".equalsIgnoreCase(row.getTipsPayMode())) {
-                    gpay += tip;
-                } else {
-                    cash += tip;
-                }
             }
         }
         data.setCount(active);
