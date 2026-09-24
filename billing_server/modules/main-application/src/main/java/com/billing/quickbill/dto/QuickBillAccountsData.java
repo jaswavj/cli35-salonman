@@ -8,6 +8,9 @@ import java.util.List;
 @Data
 public class QuickBillAccountsData {
     private List<QuickBillAccountRow> rows = new ArrayList<>();
+    private List<QuickBillAccountsData> days = new ArrayList<>();
+    private String date;
+    private String label;
     private String shopId;
     private String shopName;
     private Double cashTotal = 0.0;

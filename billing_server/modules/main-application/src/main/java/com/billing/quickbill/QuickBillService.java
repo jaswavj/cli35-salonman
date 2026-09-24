@@ -413,6 +413,34 @@ public class QuickBillService {
     }
 
     public QuickBillAccountsData accounts(String from, String to, String shopId) {
+        QuickBillAccountsData data = buildAccounts(from, to, shopId);
+        LocalDate fromDate;
+        LocalDate toDate;
+        try {
+            fromDate = LocalDate.parse(from);
+            toDate = LocalDate.parse(to);
+        } catch (Exception ex) {
+            return data;
+        }
+        if (fromDate.equals(toDate)) {
+            return data;
+        }
+        if (fromDate.plusDays(92).isBefore(toDate)) {
+            throw new RuntimeException("Choose a date range of 93 days or less");
+        }
+        DateTimeFormatter labelFmt = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        List<QuickBillAccountsData> days = new ArrayList<>();
+        for (LocalDate d = fromDate; !d.isAfter(toDate); d = d.plusDays(1)) {
+            QuickBillAccountsData day = buildAccounts(d.toString(), d.toString(), shopId);
+            day.setDate(d.toString());
+            day.setLabel(d.format(labelFmt));
+            days.add(day);
+        }
+        data.setDays(days);
+        return data;
+    }
+
+    private QuickBillAccountsData buildAccounts(String from, String to, String shopId) {
         if (from == null || from.isBlank() || to == null || to.isBlank()) {
             throw new RuntimeException("From date and to date are required");
         }

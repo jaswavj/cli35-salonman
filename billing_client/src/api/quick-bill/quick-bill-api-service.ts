@@ -64,6 +64,9 @@ export type QuickBillAccountRow = {
 
 export type QuickBillAccounts = {
   rows: QuickBillAccountRow[];
+  days?: QuickBillAccounts[];
+  date?: string;
+  label?: string;
   shopId?: string;
   shopName?: string;
   cashTotal: number;

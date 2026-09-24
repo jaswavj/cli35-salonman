@@ -5,15 +5,73 @@ const n = (v?: number) =>
   Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const amt = (v?: number) => (Number(v || 0) === 0 ? '' : n(v));
 
+const visibleRows = (data: QuickBillAccounts) =>
+  (data.rows || []).filter(
+    (row) => Number(row.cashTotal || 0) !== 0 || Number(row.bankTotal || 0) !== 0
+  );
+
 type Props = {
   data: QuickBillAccounts;
   emptyText: string;
 };
 
-const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
-  const rows = (data.rows || []).filter(
-    (row) => Number(row.cashTotal || 0) !== 0 || Number(row.bankTotal || 0) !== 0
+const AccountTable: React.FC<{ data: QuickBillAccounts; emptyText: string }> = ({ data, emptyText }) => {
+  const rows = visibleRows(data);
+  if (rows.length === 0) {
+    return <div className="mst-empty">{emptyText}</div>;
+  }
+  return (
+    <div className="mst-table-wrap">
+      <table className="mst-table qb-account-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th className="num">Cash</th>
+            <th className="num">Bank</th>
+            <th className="num">Total</th>
+            <th className="num">GPay Tips</th>
+            <th className="num">Incentive</th>
+            <th className="num">Expense</th>
+            <th className="num">Final Cash</th>
+            <th className="num">Final Bank</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.userId}>
+              <td>{row.userName || '—'}</td>
+              <td className="num">{amt(row.cashTotal)}</td>
+              <td className="num">{amt(row.bankTotal)}</td>
+              <td className="num">{n(row.total)}</td>
+              <td className="num">{n(row.tipsBank ?? row.tipsTotal)}</td>
+              <td className="num">{n(row.incentiveEarn)}</td>
+              <td className="num">{n(row.expenseTotal)}</td>
+              <td className="num">{n(row.finalCash)}</td>
+              <td className="num">{n(row.finalBank)}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th>Total</th>
+            <th className="num">{n(data.cashTotal)}</th>
+            <th className="num">{n(data.bankTotal)}</th>
+            <th className="num">{n(data.grandTotal)}</th>
+            <th className="num">{n(data.tipsTotal)}</th>
+            <th className="num">{n(data.incentiveTotal)}</th>
+            <th className="num">{n(data.expenseTotal)}</th>
+            <th className="num">{n(data.finalCashTotal)}</th>
+            <th className="num">{n(data.finalBankTotal)}</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   );
+};
+
+const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
+  const days = data.days || [];
+  const rows = visibleRows(data);
   return (
     <>
       <div className="qb-kpis qb-account-kpis">
@@ -69,14 +127,20 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
           <span>User accounts{data.shopName ? ` · ${data.shopName}` : ''}</span>
           <span className="qb-bills-total">{rows.length} users</span>
         </div>
-        {rows.length === 0 ? (
-          <div className="mst-empty">{emptyText}</div>
-        ) : (
+        <AccountTable data={data} emptyText={emptyText} />
+      </div>
+
+      {days.length > 0 && (
+        <div className="mst-card qb-account-day">
+          <div className="mst-card-h">
+            <span>Date wise total</span>
+            <span className="qb-bills-total">{days.length} days</span>
+          </div>
           <div className="mst-table-wrap">
             <table className="mst-table qb-account-table">
               <thead>
                 <tr>
-                  <th>User</th>
+                  <th>Date</th>
                   <th className="num">Cash</th>
                   <th className="num">Bank</th>
                   <th className="num">Total</th>
@@ -88,17 +152,17 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.userId}>
-                    <td>{row.userName || '—'}</td>
-                    <td className="num">{amt(row.cashTotal)}</td>
-                    <td className="num">{amt(row.bankTotal)}</td>
-                    <td className="num">{n(row.total)}</td>
-                    <td className="num">{n(row.tipsBank ?? row.tipsTotal)}</td>
-                    <td className="num">{n(row.incentiveEarn)}</td>
-                    <td className="num">{n(row.expenseTotal)}</td>
-                    <td className="num">{n(row.finalCash)}</td>
-                    <td className="num">{n(row.finalBank)}</td>
+                {days.map((day) => (
+                  <tr key={day.date || day.label}>
+                    <td>{day.label || day.date}</td>
+                    <td className="num">{amt(day.cashTotal)}</td>
+                    <td className="num">{amt(day.bankTotal)}</td>
+                    <td className="num">{n(day.grandTotal)}</td>
+                    <td className="num">{n(day.tipsTotal)}</td>
+                    <td className="num">{n(day.incentiveTotal)}</td>
+                    <td className="num">{n(day.expenseTotal)}</td>
+                    <td className="num">{n(day.finalCashTotal)}</td>
+                    <td className="num">{n(day.finalBankTotal)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -117,8 +181,8 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
               </tfoot>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 };

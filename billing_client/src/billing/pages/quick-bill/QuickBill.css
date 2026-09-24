@@ -382,6 +382,14 @@
   background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-surface));
 }
 
+.qb-account-day {
+  margin-bottom: 12px;
+}
+
+.qb-account-day .mst-card-h {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-surface));
+}
+
 .qb-bills-total {
   font-size: 0.85rem;
   font-weight: 750;

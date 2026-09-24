@@ -86,8 +86,34 @@ export const downloadCollectionXlsx = (data: QuickBillReport, incentiveEarn: num
   );
 };
 
+const accountSheetRows = (data: QuickBillAccounts) => [
+  ['User', 'Cash', 'Bank', 'Total', 'GPay Tips', 'Incentive', 'Expense', 'Final Cash', 'Final Bank'],
+  ...(data.rows || []).map((row) => [
+    row.userName || '',
+    money(row.cashTotal),
+    money(row.bankTotal),
+    money(row.total),
+    money(row.tipsBank ?? row.tipsTotal),
+    money(row.incentiveEarn),
+    money(row.expenseTotal),
+    money(row.finalCash),
+    money(row.finalBank),
+  ]),
+  [
+    'Total',
+    money(data.cashTotal),
+    money(data.bankTotal),
+    money(data.grandTotal),
+    money(data.tipsTotal),
+    money(data.incentiveTotal),
+    money(data.expenseTotal),
+    money(data.finalCashTotal),
+    money(data.finalBankTotal),
+  ],
+];
+
 export const downloadAccountsXlsx = (data: QuickBillAccounts, meta: FilterMeta) => {
-  const rows = data.rows || [];
+  const days = data.days || [];
   writeBook(
     [
       {
@@ -109,34 +135,37 @@ export const downloadAccountsXlsx = (data: QuickBillAccounts, meta: FilterMeta) 
           ['Final Bank', money(data.finalBankTotal)],
         ],
       },
-      {
-        name: 'Accounts',
-        rows: [
-          ['User', 'Cash', 'Bank', 'Total', 'GPay Tips', 'Incentive', 'Expense', 'Final Cash', 'Final Bank'],
-          ...rows.map((row) => [
-            row.userName || '',
-            money(row.cashTotal),
-            money(row.bankTotal),
-            money(row.total),
-            money(row.tipsBank ?? row.tipsTotal),
-            money(row.incentiveEarn),
-            money(row.expenseTotal),
-            money(row.finalCash),
-            money(row.finalBank),
-          ]),
-          [
-            'Total',
-            money(data.cashTotal),
-            money(data.bankTotal),
-            money(data.grandTotal),
-            money(data.tipsTotal),
-            money(data.incentiveTotal),
-            money(data.expenseTotal),
-            money(data.finalCashTotal),
-            money(data.finalBankTotal),
-          ],
-        ],
-      },
+      { name: 'Accounts', rows: accountSheetRows(data) },
+      ...(days.length > 0
+        ? [{
+            name: 'Date wise total',
+            rows: [
+              ['Date', 'Cash', 'Bank', 'Total', 'GPay Tips', 'Incentive', 'Expense', 'Final Cash', 'Final Bank'],
+              ...days.map((day) => [
+                day.label || day.date || '',
+                money(day.cashTotal),
+                money(day.bankTotal),
+                money(day.grandTotal),
+                money(day.tipsTotal),
+                money(day.incentiveTotal),
+                money(day.expenseTotal),
+                money(day.finalCashTotal),
+                money(day.finalBankTotal),
+              ]),
+              [
+                'Total',
+                money(data.cashTotal),
+                money(data.bankTotal),
+                money(data.grandTotal),
+                money(data.tipsTotal),
+                money(data.incentiveTotal),
+                money(data.expenseTotal),
+                money(data.finalCashTotal),
+                money(data.finalBankTotal),
+              ],
+            ],
+          }]
+        : []),
     ],
     `accounts-report-${meta.from}-to-${meta.to}.xlsx`
   );
