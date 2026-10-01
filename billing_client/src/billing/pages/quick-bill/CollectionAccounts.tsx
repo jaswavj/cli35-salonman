@@ -10,6 +10,12 @@ const visibleRows = (data: QuickBillAccounts) =>
     (row) => Number(row.cashTotal || 0) !== 0 || Number(row.bankTotal || 0) !== 0
   );
 
+const bankFinalOf = (data: Pick<QuickBillAccounts, 'bankTotal' | 'tipsTotal'>) =>
+  Number(data.bankTotal || 0) + Number(data.tipsTotal || 0);
+
+const rowBankFinal = (row: QuickBillAccounts['rows'][number]) =>
+  Number(row.bankTotal || 0) + Number(row.tipsBank ?? row.tipsTotal ?? 0);
+
 type Props = {
   data: QuickBillAccounts;
   emptyText: string;
@@ -47,7 +53,7 @@ const AccountTable: React.FC<{ data: QuickBillAccounts; emptyText: string }> = (
               <td className="num">{n(row.incentiveEarn)}</td>
               <td className="num">{n(row.expenseTotal)}</td>
               <td className="num">{n(row.finalCash)}</td>
-              <td className="num">{n(row.finalBank)}</td>
+              <td className="num">{n(rowBankFinal(row))}</td>
             </tr>
           ))}
         </tbody>
@@ -61,7 +67,7 @@ const AccountTable: React.FC<{ data: QuickBillAccounts; emptyText: string }> = (
             <th className="num">{n(data.incentiveTotal)}</th>
             <th className="num">{n(data.expenseTotal)}</th>
             <th className="num">{n(data.finalCashTotal)}</th>
-            <th className="num">{n(data.finalBankTotal)}</th>
+            <th className="num">{n(bankFinalOf(data))}</th>
           </tr>
         </tfoot>
       </table>
@@ -117,7 +123,7 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
           </div>
           <div className="qb-kpi-col">
             <div className="qb-kpi-l">Final Bank</div>
-            <div className="qb-kpi-v">{n(data.finalBankTotal)}</div>
+            <div className="qb-kpi-v">{n(bankFinalOf(data))}</div>
           </div>
         </div>
       </div>
@@ -162,7 +168,7 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
                     <td className="num">{n(day.incentiveTotal)}</td>
                     <td className="num">{n(day.expenseTotal)}</td>
                     <td className="num">{n(day.finalCashTotal)}</td>
-                    <td className="num">{n(day.finalBankTotal)}</td>
+                    <td className="num">{n(bankFinalOf(day))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -176,7 +182,7 @@ const CollectionAccounts: React.FC<Props> = ({ data, emptyText }) => {
                   <th className="num">{n(data.incentiveTotal)}</th>
                   <th className="num">{n(data.expenseTotal)}</th>
                   <th className="num">{n(data.finalCashTotal)}</th>
-                  <th className="num">{n(data.finalBankTotal)}</th>
+                  <th className="num">{n(bankFinalOf(data))}</th>
                 </tr>
               </tfoot>
             </table>

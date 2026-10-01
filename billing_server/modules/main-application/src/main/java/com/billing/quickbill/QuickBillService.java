@@ -531,6 +531,7 @@ public class QuickBillService {
             double incentive = incentiveByUser.getOrDefault(row.getUserId(), 0.0);
             double expense = expenseByUser.getOrDefault(row.getUserId(), 0.0);
             double finalCash = cash - tipsBank - incentive - expense;
+            double finalBank = bank + tipsBank;
             row.setCashTotal(round2(cash));
             row.setBankTotal(round2(bank));
             row.setTotal(round2(cash + bank));
@@ -540,14 +541,14 @@ public class QuickBillService {
             row.setIncentiveEarn(round2(incentive));
             row.setExpenseTotal(round2(expense));
             row.setFinalCash(round2(finalCash));
-            row.setFinalBank(round2(bank));
+            row.setFinalBank(round2(finalBank));
             cashTotal += cash;
             bankTotal += bank;
             tipsTotal += tipsBank;
             incentiveTotal += incentive;
             expenseTotal += expense;
             finalCashTotal += finalCash;
-            finalBankTotal += bank;
+            finalBankTotal += finalBank;
         }
         data.setRows(people);
         data.setCount(people.size());

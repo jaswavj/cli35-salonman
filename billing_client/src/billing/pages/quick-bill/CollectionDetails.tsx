@@ -42,7 +42,7 @@ const CollectionDetails: React.FC<Props> = ({
   const incentive = Number(incentiveEarn || 0);
   const expense = Number(data.expenseTotal || 0);
   const cashFinal = Number(data.cashTotal || 0) - tipsGpay - incentive - expense;
-  const bankFinal = Number(data.gpayTotal || 0);
+  const bankFinal = Number(data.gpayTotal || 0) + tipsGpay;
   return (
     <>
       {showKpis && (
@@ -102,7 +102,7 @@ const CollectionDetails: React.FC<Props> = ({
             <div className="qb-kpi-col">
               <div className="qb-kpi-l">Final Bank</div>
               <div className="qb-kpi-v">{n(bankFinal)}</div>
-              <div className="qb-kpi-note">GPay total</div>
+              <div className="qb-kpi-note">+ GPay tips</div>
             </div>
           </div>
         </div>

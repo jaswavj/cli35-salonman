@@ -3,6 +3,10 @@ import type { QuickBillAccounts, QuickBillReport } from '../../../api/quick-bill
 
 const n = (v?: number) => Number(v || 0);
 const money = (v?: number) => Number(Number(v || 0).toFixed(2));
+const bankFinalOf = (data: Pick<QuickBillAccounts, 'bankTotal' | 'tipsTotal'>) =>
+  n(data.bankTotal) + n(data.tipsTotal);
+const rowBankFinal = (row: QuickBillAccounts['rows'][number]) =>
+  n(row.bankTotal) + n(row.tipsBank ?? row.tipsTotal);
 const payLabel = (mode?: string) => (mode === 'gpay' ? 'GPay' : mode === 'cash' ? 'Cash' : mode || '—');
 
 type FilterMeta = {
@@ -38,7 +42,7 @@ export const downloadCollectionXlsx = (data: QuickBillReport, incentiveEarn: num
   const incentive = n(incentiveEarn);
   const expense = n(data.expenseTotal);
   const finalCash = n(data.cashTotal) - tipsGpay - incentive - expense;
-  const finalBank = n(data.gpayTotal);
+  const finalBank = n(data.gpayTotal) + tipsGpay;
 
   writeBook(
     [
@@ -97,7 +101,7 @@ const accountSheetRows = (data: QuickBillAccounts) => [
     money(row.incentiveEarn),
     money(row.expenseTotal),
     money(row.finalCash),
-    money(row.finalBank),
+    money(rowBankFinal(row)),
   ]),
   [
     'Total',
@@ -108,7 +112,7 @@ const accountSheetRows = (data: QuickBillAccounts) => [
     money(data.incentiveTotal),
     money(data.expenseTotal),
     money(data.finalCashTotal),
-    money(data.finalBankTotal),
+    money(bankFinalOf(data)),
   ],
 ];
 
@@ -132,7 +136,7 @@ export const downloadAccountsXlsx = (data: QuickBillAccounts, meta: FilterMeta) 
           ['Incentive', money(data.incentiveTotal)],
           ['Expense', money(data.expenseTotal)],
           ['Final Cash', money(data.finalCashTotal)],
-          ['Final Bank', money(data.finalBankTotal)],
+          ['Final Bank', money(bankFinalOf(data))],
         ],
       },
       { name: 'Accounts', rows: accountSheetRows(data) },
@@ -150,7 +154,7 @@ export const downloadAccountsXlsx = (data: QuickBillAccounts, meta: FilterMeta) 
                 money(day.incentiveTotal),
                 money(day.expenseTotal),
                 money(day.finalCashTotal),
-                money(day.finalBankTotal),
+                money(bankFinalOf(day)),
               ]),
               [
                 'Total',
@@ -161,7 +165,7 @@ export const downloadAccountsXlsx = (data: QuickBillAccounts, meta: FilterMeta) 
                 money(data.incentiveTotal),
                 money(data.expenseTotal),
                 money(data.finalCashTotal),
-                money(data.finalBankTotal),
+                money(bankFinalOf(data)),
               ],
             ],
           }]
