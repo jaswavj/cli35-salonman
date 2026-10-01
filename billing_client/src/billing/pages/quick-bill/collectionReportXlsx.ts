@@ -37,7 +37,7 @@ export const downloadCollectionXlsx = (data: QuickBillReport, incentiveEarn: num
   }, 0);
   const incentive = n(incentiveEarn);
   const expense = n(data.expenseTotal);
-  const finalCash = n(data.cashTotal) - tipsGpay - incentive;
+  const finalCash = n(data.cashTotal) - tipsGpay - incentive - expense;
   const finalBank = n(data.gpayTotal);
 
   writeBook(

@@ -530,7 +530,7 @@ public class QuickBillService {
             double tipsBank = vals[4];
             double incentive = incentiveByUser.getOrDefault(row.getUserId(), 0.0);
             double expense = expenseByUser.getOrDefault(row.getUserId(), 0.0);
-            double finalCash = cash - tipsBank - incentive;
+            double finalCash = cash - tipsBank - incentive - expense;
             row.setCashTotal(round2(cash));
             row.setBankTotal(round2(bank));
             row.setTotal(round2(cash + bank));
